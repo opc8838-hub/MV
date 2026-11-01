@@ -181,7 +181,7 @@
         0.12
       ],
       "label": "TOOL TRACK",
-      "magnifier": true
+      "magnifier": false
     },
     {
       "type": "chop",

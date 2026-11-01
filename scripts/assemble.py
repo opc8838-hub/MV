@@ -6,10 +6,11 @@ import argparse
 from pathlib import Path
 import tempfile
 
-from common import Reader, Writer, run, duration, video_args, save_json, contact_sheet, Beats, load_json, protect_inputs
+from common import Reader, Writer, run, duration, video_args, save_json, contact_sheet, Beats, load_json, protect_inputs, resolve, video_options
 
 
-def assemble(parts,music,out,w=360,h=640,fps=25,insert_at=None,insert_beats=0,bpm=120,beatmap=None):
+def assemble(parts,music,out,w=360,h=640,fps=25,insert_at=None,insert_beats=0,bpm=120,beatmap=None,
+             music_start=0,music_seconds=None,shutdown_seconds=0,audio_fade_out=0):
     protect_inputs(out,[*parts,music])
     if insert_beats<0 or int(insert_beats)!=insert_beats:
         raise ValueError('insert-beats must be a whole positive number, or zero')
@@ -37,10 +38,20 @@ def assemble(parts,music,out,w=360,h=640,fps=25,insert_at=None,insert_beats=0,bp
             raise ValueError('Insertion cannot be quantized to this fps')
     out=Path(out); out.parent.mkdir(parents=True,exist_ok=True)
     total=(base_total+hold)/fps
-    if duration(music)+.005<base_total/fps or (insert_beats and block_start+block>duration(music)):
+    audio_needed=music_seconds if music_seconds is not None else base_total/fps
+    if music_start<0 or duration(music)+.5/fps<music_start+audio_needed or (insert_beats and block_start+block>duration(music)):
         raise ValueError('Music too short; choose a valid integral-beat source block or longer track')
     with tempfile.TemporaryDirectory(prefix='nobody-assemble-') as tmp:
         silent=Path(tmp)/'silent.mp4'; edited=Path(tmp)/'music.wav'
+        if music_start or music_seconds is not None or shutdown_seconds:
+            if insert_beats: raise ValueError('Window configuration cannot also insert beats')
+            filters=f'atrim=start={music_start}:duration={audio_needed},asetpts=PTS-STARTPTS'
+            if audio_fade_out:
+                filters+=f',afade=t=out:st={max(0,audio_needed-audio_fade_out)}:d={audio_fade_out}'
+            filters+=f',apad,atrim=duration={base_total/fps}'
+            windowed=Path(tmp)/'window.wav'
+            run(['-i',music,'-vn','-af',filters,windowed])
+            music=windowed
         count=0; previous=None
         with Writer(silent,w,h,fps) as writer:
             for path,n in zip(parts,lengths):
@@ -65,7 +76,8 @@ def assemble(parts,music,out,w=360,h=640,fps=25,insert_at=None,insert_beats=0,bp
         run(['-i',silent,'-i',audio,'-map','0:v:0','-map','1:a:0','-t',total,
              '-c:v','copy','-c:a','aac','-b:a','192k','-movflags','+faststart',out])
     report=dict(frames=base_total+hold,fps=fps,duration=total,insert_frame=insert_frame,
-                inserted_frames=hold,music_block_start=block_start,music_block_seconds=block)
+                inserted_frames=hold,music_block_start=block_start,music_block_seconds=block,
+                music_start=music_start,music_seconds=audio_needed,shutdown_seconds=shutdown_seconds)
     save_json(out.with_suffix('.assembly.json'),report)
     contact_sheet(out,out.with_suffix('.sheet.png'),fps=fps)
     return report
@@ -74,11 +86,19 @@ def assemble(parts,music,out,w=360,h=640,fps=25,insert_at=None,insert_beats=0,bp
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('parts',nargs='+',type=Path,help='Silent parts in playback order')
-    p.add_argument('--music',type=Path,required=True)
+    p.add_argument('--music',type=Path)
     p.add_argument('--out',type=Path,required=True)
     p.add_argument('--insert-at',type=float,help='Explicitly requested freeze time, snapped to nearest beat')
     p.add_argument('--insert-beats',type=int,default=0,help='Number of whole beats to freeze and duplicate in audio')
     p.add_argument('--bpm',type=float,default=120)
     p.add_argument('--beatmap',type=Path,help='Use actual beat intervals for insertion')
     video_args(p); a=p.parse_args()
-    print(assemble(a.parts,a.music,a.out,a.width,a.height,a.fps,a.insert_at,a.insert_beats,a.bpm,a.beatmap))
+    if len(a.parts)==1 and a.parts[0].suffix.lower()=='.json':
+        path=a.parts[0]; cfg=load_json(path)
+        print(assemble([resolve(path.parent,x) for x in cfg['parts']],resolve(path.parent,cfg['music']),a.out,
+            *video_options(cfg,a),
+            music_start=cfg.get('music_start',0),music_seconds=cfg.get('music_seconds'),
+            shutdown_seconds=cfg.get('shutdown_seconds',0),audio_fade_out=cfg.get('audio_fade_out',0)))
+    else:
+        if a.music is None: p.error('--music is required without assemble.json')
+        print(assemble(a.parts,a.music,a.out,a.width,a.height,a.fps,a.insert_at,a.insert_beats,a.bpm,a.beatmap))

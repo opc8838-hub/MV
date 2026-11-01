@@ -116,7 +116,7 @@ def main(video,music,out,at=0,w=360,h=640):
         raise AssertionError(f'Inserted music alignment failed: {samples}')
     checks['audio']=dict(correlations=samples,decoded_seconds=len(decoded)/sr)
     # Exercise the remaining renderer types, four-grid styles, flip and wipe.
-    more=[dict(type='hero',start_beat=0,end_beat=2,source='S0',box=[.3,.3,.15,.15],magnifier=True,label='TOOL'),
+    more=[dict(type='hero',start_beat=0,end_beat=2,source='S0',box=[.3,.3,.15,.15],magnifier=False,label='TRACK'),
           dict(type='grid',start_beat=2,end_beat=4,n=2,tiles=['S0']*4,tile_styles=['raw','thermal_silhouette','dots3','ascii_face']),
           dict(type='grid',start_beat=4,end_beat=6,n=3,tiles=list(sources),mode='flip',flip_to=list(reversed(sources)),flip_beats=1),
           dict(type='freeze',start_beat=6,end_beat=7,source='S0',authorized=True),

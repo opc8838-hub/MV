@@ -7,7 +7,7 @@ from pathlib import Path
 
 import numpy as np
 from common import (Reader, Writer, load_json, resolve, paper, RED, text,
-                    video_args, contact_sheet, save_json, protect_inputs)
+                    video_args, contact_sheet, save_json, protect_inputs, video_options)
 from render import source_spec
 import styles
 
@@ -43,15 +43,15 @@ def build(config,out,w=360,h=640,fps=25):
                         frame=styles.apply(raw,s.get('style','raw'),seed=a+k,phase=(a+k)/fps*2)
                         if s.get('scan'):
                             x=round(w*min(1,(k+1)/max(1,(b-a)*.7)))
-                            frame[:,x:]=raw[:,x:]; frame[:,max(0,x-1):x+1]=RED
-                    elif s.get('background')=='red':
-                        frame=np.full((h,w,3),RED,np.uint8)
+                            frame[:,x:]=raw[:,x:]; frame[:,max(0,x-1):x+1]=s.get('accent_color',RED)
+                    elif s.get('background') in ('red','accent'):
+                        frame=np.full((h,w,3),s.get('accent_color',RED),np.uint8)
                     elif s.get('background')=='black':
                         frame=np.zeros((h,w,3),np.uint8)
                     else:
-                        frame=paper(w,h,a+k)
+                        frame=paper(w,h,0 if s.get('static') else a+k)
                     if s.get('text'):
-                        progress=min(1,(k+1)/max(1,int(fps*.2)))
+                        progress=1 if s.get('static') else min(1,(k+1)/max(1,int(fps*.2)))
                         xy=(w/2,h*(.5 if s.get('big',True) else .78)+h*.015*(1-progress))
                         frame=text(frame,s['text'],xy,int(w*s.get('size',.42)),tuple(s.get('color',[17,17,17])))
                     if s.get('slices'):
@@ -76,4 +76,5 @@ if __name__=='__main__':
     p.add_argument('config',type=Path)
     p.add_argument('--out',type=Path,required=True)
     video_args(p); a=p.parse_args()
-    print('frames',build(a.config,a.out,a.width,a.height,a.fps))
+    cfg=load_json(a.config)
+    print('frames',build(a.config,a.out,*video_options(cfg,a)))

@@ -1,5 +1,6 @@
 # Private task brief and all local production data
 CODEX_TASK.md
+CODEX_TASK2.md
 work/
 cache/
 renders/
@@ -35,6 +36,7 @@ music/
 .venv/
 venv/
 __pycache__/
+.playwright-cli/
 *.pyc
 .DS_Store
 Thumbs.db

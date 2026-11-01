@@ -12,33 +12,41 @@ import os
 import cv2
 from common import Reader, Writer, duration, load_json, save_json
 
-PAGE = '''<!doctype html><html lang="zh-CN"><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>Nobody 选片</title>
-<style>body{margin:0;background:#eeebe4;color:#111;font:16px system-ui}
-header{position:sticky;top:0;background:#111;color:white;padding:16px;z-index:2}
-button{padding:10px;background:#ff3b1f;color:white;border:0;cursor:pointer}
-main{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;padding:20px}
-article{border:4px solid transparent;cursor:pointer;background:white}article.on{border-color:#ff3b1f}
-video{display:block;width:100%}label{display:block;padding:8px}textarea{width:100%;height:60px}</style>
-<header><b>Nobody · 点一下选中，再点取消</b> <span id="count">0</span>
-<button id="copy">复制编号</button><button id="clear">清空</button>
-<textarea id="selection" aria-label="选片编号" readonly></textarea></header><main>__CARDS__</main>
-<script>
-const cards=[...document.querySelectorAll('article')];
-const key='nobody-picks:'+location.pathname;let picked=new Set();
-try{picked=new Set(JSON.parse(localStorage.getItem(key)||'[]'))}catch(e){}
-picked=new Set([...picked].filter(id=>cards.some(c=>c.dataset.id===id)));
-function update(){for(const c of cards)c.classList.toggle('on',picked.has(c.dataset.id));
-document.querySelector('#count').textContent=picked.size;
-document.querySelector('#selection').value=[...picked].sort().join(', ');
-try{localStorage.setItem(key,JSON.stringify([...picked]))}catch(e){}}
-for(const c of cards){c.onclick=()=>{picked.has(c.dataset.id)?picked.delete(c.dataset.id):picked.add(c.dataset.id);update()};
-const v=c.querySelector('video');c.onmouseenter=()=>v.play().catch(()=>{});c.onmouseleave=()=>v.pause();
-c.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();c.click()}}}
+PAGE = """<!doctype html><html lang="zh-CN"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Nobody 选片与角色</title>
+<style>body{margin:0;background:#eeebe4;color:#111;font:16px system-ui}header{position:sticky;top:0;background:#111;color:white;padding:16px;z-index:2}button{padding:10px;background:#ff3b1f;color:white;border:0;cursor:pointer}main{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;padding:20px}article{border:4px solid transparent;background:white}article.on{border-color:#ff3b1f}video{display:block;width:100%}label{display:block;padding:6px}textarea{width:100%;height:90px}select{padding:6px}</style>
+<header><b>Nobody · 选中镜头并标角色</b> <span id="count">0</span>
+<button id="copy">复制我的选择（JSON）</button><button id="clear">清空</button>
+<p>将 JSON 保存为 picks.json；来源使用完整本地路径，可保存到任意私有工作目录。可用秒数只填写已检查的连续范围。</p>
+<textarea id="selection" aria-label="选片 JSON" readonly></textarea></header><main>__CARDS__</main>
+<script id="data" type="application/json">__DATA__</script><script>
+const data=JSON.parse(document.querySelector('#data').textContent);
+const cards=[...document.querySelectorAll('article')], key='nobody-role-picks:'+location.pathname;
+let saved={};try{saved=JSON.parse(localStorage.getItem(key)||'{}')}catch(e){}
+function output(){return cards.filter(c=>c.querySelector('.pick').checked).map(c=>{
+ const id=c.dataset.id,d=data[id];return {id,...d,role:c.querySelector('select').value,
+ hero:c.querySelector('.hero').checked,star:c.querySelector('.hero').checked?1:0,
+ freeze:c.querySelector('.freeze').checked,allow_zoom:c.querySelector('.zoom').checked,
+ duration:Number(c.querySelector('.duration').value)};})}
+function update(){const result=output();for(const c of cards)c.classList.toggle('on',c.querySelector('.pick').checked);
+ document.querySelector('#count').textContent=result.length;
+ document.querySelector('#selection').value=JSON.stringify(result,null,2);
+ try{localStorage.setItem(key,JSON.stringify(Object.fromEntries(cards.map(c=>[c.dataset.id,{
+ selected:c.querySelector('.pick').checked,role:c.querySelector('select').value,
+ hero:c.querySelector('.hero').checked,freeze:c.querySelector('.freeze').checked,
+ allow_zoom:c.querySelector('.zoom').checked,duration:Number(c.querySelector('.duration').value)}]))))}catch(e){}
+}
+for(const c of cards){const v=saved[c.dataset.id];if(v){
+ c.querySelector('.pick').checked=!!v.selected;c.querySelector('select').value=v.role||'process';
+ for(const name of ['hero','freeze'])c.querySelector('.'+name).checked=!!v[name];
+ c.querySelector('.zoom').checked=!!v.allow_zoom;c.querySelector('.duration').value=v.duration||data[c.dataset.id].duration;}
+ c.onchange=update;const video=c.querySelector('video');
+ c.onmouseenter=()=>video.play().catch(()=>{});c.onmouseleave=()=>video.pause();}
 document.querySelector('#copy').onclick=async()=>{const t=document.querySelector('#selection');t.select();
-try{await navigator.clipboard.writeText(t.value)}catch(e){document.execCommand('copy')}};
-document.querySelector('#clear').onclick=()=>{picked.clear();update()};update();
-</script></html>'''
+ try{await navigator.clipboard.writeText(t.value)}catch(e){document.execCommand('copy')}};
+document.querySelector('#clear').onclick=()=>{for(const c of cards)c.querySelector('.pick').checked=false;update()};update();
+</script></html>"""
+
 
 
 def build(videos,out,groups=None,seconds=1.6,step=None,faces=False,start=0,end=None):
@@ -60,7 +68,7 @@ def build(videos,out,groups=None,seconds=1.6,step=None,faces=False,start=0,end=N
         storage.release()
         if face.empty():
             raise RuntimeError('Could not load the bundled OpenCV frontal-face detector')
-    cards=[]; picks={}
+    cards=[]; picks={}; exported={}
     for group in specs:
         source=(Path(groups).parent/group['source']).resolve() if groups else Path(group['source'])
         if out.resolve() in source.resolve().parents:
@@ -98,12 +106,15 @@ def build(videos,out,groups=None,seconds=1.6,step=None,faces=False,start=0,end=N
                 source_path=source.as_posix()
             picks[alias]=dict(path=source_path,start=round(t,6),
                               x_offset=group.get('x_offset',0),candidate_duration=seconds)
+            exported[alias]=dict(picks[alias],path=source.resolve().as_posix(),duration=seconds)
             label=html.escape(f"{alias} · {group.get('title',prefix)} · {t:.2f}s")
-            cards.append(f'<article data-id="{alias}" tabindex="0"><video src="clips/{alias}.mp4" muted loop playsinline preload="metadata" controls></video><label>{label}</label></article>')
+            roles=[('before','变化前'),('process','变化过程'),('after','变化后'),('enter','进场/走近'),('profile','侧脸'),('hero','英雄镜头'),('detail','细节'),('exit','离场/擦除')]
+            options=''.join(f'<option value="{r}" {"selected" if r=="process" else ""}>{r} · {title}</option>' for r,title in roles)
+            cards.append(f'<article data-id="{alias}"><video src="clips/{alias}.mp4" muted loop playsinline preload="metadata" controls></video><label><input type="checkbox" class="pick">选中 · {label}</label><label>角色 <select aria-label="镜头角色">{options}</select></label><label><input type="checkbox" class="hero">★ hero</label><label><input type="checkbox" class="freeze">允许定格</label><label><input type="checkbox" class="zoom">允许放大</label><label>可用秒数 <input class="duration" type="number" min="0.04" step="0.04" value="{seconds}" aria-label="已检查的可用秒数"></label></article>')
             t+=step
     if not picks:
         raise ValueError('No candidates; expand the time window or turn off --faces')
-    (out/'index.html').write_text(PAGE.replace('__CARDS__','\n'.join(cards)),encoding='utf-8')
+    (out/'index.html').write_text(PAGE.replace('__CARDS__','\n'.join(cards)).replace('__DATA__',json.dumps(exported,ensure_ascii=False).replace('<','\\u003c')),encoding='utf-8')
     save_json(out/'picks.json',picks)
     print(f'{len(picks)} candidates -> {out / "index.html"}')
 

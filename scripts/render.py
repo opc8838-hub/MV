@@ -11,7 +11,7 @@ import cv2
 import numpy as np
 from PIL import Image, ImageDraw
 from common import (Beats, Reader, Writer, PAPER, RED, font, load_json, resolve,
-                    text, video_args, contact_sheet, protect_inputs)
+                    text, video_args, contact_sheet, protect_inputs, video_options)
 import styles
 
 
@@ -40,17 +40,17 @@ class Tracker:
         return self.box
 
 
-def overlay_box(rgb, box, label='', magnifier=False):
+def overlay_box(rgb, box, label='', magnifier=False, accent=RED):
     x,y,bw,bh=map(int,box); h,w=rgb.shape[:2]
     im=Image.fromarray(rgb); d=ImageDraw.Draw(im)
-    d.rectangle((x,y,x+bw,y+bh),outline=RED,width=max(1,w//540))
-    d.text((x,max(0,y-20)),label,font=font(max(9,w*.025),500),fill=RED)
+    d.rectangle((x,y,x+bw,y+bh),outline=tuple(accent),width=max(1,w//540))
+    d.text((x,max(0,y-20)),label,font=font(max(9,w*.025),500),fill=tuple(accent))
     if magnifier:
         side=min(w//3,h//4)
         roi=rgb[max(0,y):min(h,y+bh),max(0,x):min(w,x+bw)]
         inset=Image.fromarray(roi).resize((side,side),Image.Resampling.LANCZOS)
         im.paste(inset,(w-side-10,h-side-10))
-        d.rectangle((w-side-10,h-side-10,w-10,h-10),outline=RED,width=1)
+        d.rectangle((w-side-10,h-side-10,w-10,h-10),outline=tuple(accent),width=1)
     return np.array(im)
 
 
@@ -74,8 +74,8 @@ def compile_segments(cfg, beats, fps):
     previous=0
     result=[]
     for s in segments:
-        a=round(beats.sec(s['start_beat'])*fps)
-        b=round(beats.sec(s['end_beat'])*fps)
+        a=int(s['start_frame']) if 'start_frame' in s else round(beats.sec(s['start_beat'])*fps)
+        b=int(s['end_frame']) if 'end_frame' in s else round(beats.sec(s['end_beat'])*fps)
         if a!=previous or b<=a:
             raise ValueError('Segments must cover time from 0, without gaps/overlaps, at least one frame each')
         if s['type']=='freeze' and not s.get('authorized'):
@@ -114,7 +114,7 @@ def render(config, out, w=360, h=640, fps=25, review=True):
                 cuts=[]
                 if kind=='chop':
                     cuts=s['cuts']
-                    bounds=[round((beats.sec(s['start_beat']+c['beat'])-beats.sec(s['start_beat']))*fps) for c in cuts]
+                    bounds=[int(c['frame']) if 'frame' in c else round((beats.sec(s['start_beat']+c['beat'])-beats.sec(s['start_beat']))*fps) for c in cuts]
                     if not bounds or bounds[0]!=0 or any(y<=x for x,y in zip(bounds,bounds[1:])) or bounds[-1]>=n:
                         raise ValueError('chop cuts start at local beat 0 and increase within segment')
                     if sum(c.get('style','raw')=='raw' for c in cuts)<len(cuts)/2:
@@ -129,10 +129,11 @@ def render(config, out, w=360, h=640, fps=25, review=True):
                     elif kind=='grid':
                         tiles=[]; side=s.get('n',3)
                         order=[4,5,8,7,6,3,0,1,2] if side==3 else [0,1,3,2]
-                        reveal=max(1,round(float(s.get('reveal_beats',1))*60/beats.bpm*fps))
-                        flip_span=max(1,round(float(s.get('flip_beats',2))*60/beats.bpm*fps))
+                        reveal=int(s.get('reveal_frames',max(1,round(float(s.get('reveal_beats',1))*60/beats.bpm*fps))))
+                        flip_span=int(s.get('flip_frames',max(1,round(float(s.get('flip_beats',2))*60/beats.bpm*fps))))
                         for cell,alias in enumerate(s['tiles']):
-                            if s.get('mode')=='flip' and k>=round((cell//side+1)*flip_span/side):
+                            flip_at=(reveal if s.get('flip_after_reveal') else 0)+round((cell+1)*flip_span/(side*side))
+                            if s.get('flip_to') and (s.get('mode')=='flip' or s.get('flip_after_reveal')) and k>=flip_at:
                                 alias=s['flip_to'][cell]
                             tile_style=s.get('tile_styles',['raw']*(side*side))[cell]
                             tile=styles.apply(frames[alias],tile_style,seed=a+k+cell,phase=phase)
@@ -159,9 +160,11 @@ def render(config, out, w=360, h=640, fps=25, review=True):
                             if tracker is None:
                                 box=s.get('box',[.3,.25,.3,.25])
                                 tracker=Tracker([box[0]*w,box[1]*h,box[2]*w,box[3]*h])
-                            frame=overlay_box(frame,tracker.update(raw),s.get('label','TRACK'),s.get('magnifier',False))
+                            if s.get('magnifier') and not cfg['sources'][s['source']].get('allow_zoom'):
+                                raise ValueError('magnifier needs source.allow_zoom=true')
+                            frame=overlay_box(frame,tracker.update(raw),s.get('label','TRACK'),s.get('magnifier',False),s.get('accent_color',RED))
                         if s.get('wipe'):
-                            x=round(w*k/max(1,n-1)); frame[:,max(0,x-1):x+1]=RED
+                            x=round(w*k/max(1,n-1)); frame[:,max(0,x-1):x+1]=s.get('accent_color',RED)
                     else:
                         frame=np.full((h,w,3),PAPER,np.uint8)
                     if s.get('word'):
@@ -186,4 +189,5 @@ if __name__=='__main__':
     p.add_argument('--out',type=Path,required=True)
     p.add_argument('--no-sheet',action='store_true')
     video_args(p); a=p.parse_args()
-    print('frames',render(a.config,a.out,a.width,a.height,a.fps,not a.no_sheet))
+    cfg=load_json(a.config)
+    print('frames',render(a.config,a.out,*video_options(cfg,a),not a.no_sheet))

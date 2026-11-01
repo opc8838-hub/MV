@@ -247,6 +247,13 @@ def video_args(parser):
     parser.add_argument('--fps', type=int, default=25)
 
 
+def video_options(cfg, args):
+    """Config dimensions default; explicit CLI options override them."""
+    import sys
+    return tuple(getattr(args,key) if any(v==f'--{key}' or v.startswith(f'--{key}=') for v in sys.argv)
+                 else cfg.get(key,getattr(args,key)) for key in ('width','height','fps'))
+
+
 if __name__ == '__main__':
     p = argparse.ArgumentParser(description='Generate timestamped review contact sheets from a local video.')
     p.add_argument('video', type=Path)

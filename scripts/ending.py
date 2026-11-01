@@ -7,10 +7,10 @@ from pathlib import Path
 import cv2
 import numpy as np
 from PIL import Image, ImageDraw
-from common import Reader, Writer, paper, text, INK, video_args, contact_sheet, protect_inputs
+from common import Reader, Writer, paper, text, INK, video_args, contact_sheet, protect_inputs, load_json, resolve, video_options
 
 
-def build(source,out,at=0,word='nobody.',seconds=2,w=360,h=640,fps=25):
+def build(source,out,at=0,word='nobody.',seconds=2,w=360,h=640,fps=25,shutdown=True,shutdown_seconds=0):
     protect_inputs(out,[source])
     if seconds<=0 or not word.strip():
         raise ValueError('Positive duration and a nonempty word required')
@@ -34,12 +34,15 @@ def build(source,out,at=0,word='nobody.',seconds=2,w=360,h=640,fps=25):
     centre=np.array([w/2,h/2])
     burst=centre+(pos-centre)*rng.uniform(1.8,3.4,(len(pos),1))+rng.normal(0,w*.1,pos.shape)
     solid=text(paper(w,h),word,size=int(w*.22))
-    total=round(seconds*fps)
+    total=round((seconds+shutdown_seconds)*fps)
+    animation=round(seconds*fps)
     with Writer(out,w,h,fps) as writer:
         for k in range(total):
-            p=k/max(1,total-1)
-            if p>=.62:
-                q=(p-.62)/.38; frame=np.zeros_like(raw)
+            p=k/max(1,animation-1)
+            off=(shutdown and p>=.62) if not shutdown_seconds else k>=animation
+            if off:
+                q=(p-.62)/.38 if not shutdown_seconds else (k-animation)/max(1,total-animation-1)
+                frame=np.zeros_like(raw)
                 if q<.35:
                     hh=max(2,round(h*(1-q/.35)**2)); y=(h-hh)//2
                     frame[y:y+hh]=cv2.resize(solid,(w,hh))
@@ -49,6 +52,10 @@ def build(source,out,at=0,word='nobody.',seconds=2,w=360,h=640,fps=25):
                 elif q<.85:
                     cv2.circle(frame,(w//2,h//2),max(1,w//180),(255,255,255),-1)
                 writer.write(frame); continue
+            if not shutdown and p>=.62:
+                writer.write(solid); continue
+            if shutdown_seconds and k<animation:
+                p=p*.62
             if p<.08:
                 xy=pos; rr=rad
             elif p<.3:
@@ -75,10 +82,16 @@ def build(source,out,at=0,word='nobody.',seconds=2,w=360,h=640,fps=25):
 
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('source',type=Path)
+    p.add_argument('source',type=Path,help='Video or generated ending.json')
     p.add_argument('--out',type=Path,required=True)
     p.add_argument('--at',type=float,default=0,help='Source seconds of the chosen grid/frame')
     p.add_argument('--word',default='nobody.')
     p.add_argument('--duration',type=float,default=2)
     video_args(p); a=p.parse_args()
-    print('frames',build(a.source,a.out,a.at,a.word,a.duration,a.width,a.height,a.fps))
+    if a.source.suffix.lower()=='.json':
+        cfg=load_json(a.source)
+        print('frames',build(resolve(a.source.parent,cfg['source']),a.out,cfg.get('at',0),cfg.get('word','nobody.'),
+            cfg['duration'],*video_options(cfg,a),
+            cfg.get('shutdown',False),cfg.get('shutdown_seconds',1) if cfg.get('shutdown') else 0))
+    else:
+        print('frames',build(a.source,a.out,a.at,a.word,a.duration,a.width,a.height,a.fps))
