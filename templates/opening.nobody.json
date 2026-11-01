@@ -1,0 +1,111 @@
+{
+  "version": 1,
+  "beatmap": "music/beatmap.json",
+  "duration": 7,
+  "sources": {
+    "FACE_A": {
+      "path": "media/FACE_A.mp4",
+      "start": 0,
+      "x_offset": 0
+    },
+    "FACE_B": {
+      "path": "media/FACE_B.mp4",
+      "start": 0,
+      "x_offset": 0
+    },
+    "ENTER": {
+      "path": "media/ENTER.mp4",
+      "start": 0,
+      "x_offset": 0
+    },
+    "PROCESS_A": {
+      "path": "media/PROCESS_A.mp4",
+      "start": 0,
+      "x_offset": 0
+    },
+    "PROCESS_B": {
+      "path": "media/PROCESS_B.mp4",
+      "start": 0,
+      "x_offset": 0
+    },
+    "HERO": {
+      "path": "media/HERO.mp4",
+      "start": 0,
+      "x_offset": 0
+    },
+    "CLEAN_A": {
+      "path": "media/CLEAN_A.mp4",
+      "start": 0,
+      "x_offset": 0
+    },
+    "CLEAN_B": {
+      "path": "media/CLEAN_B.mp4",
+      "start": 0,
+      "x_offset": 0
+    }
+  },
+  "slots": [
+    {
+      "at": 0,
+      "background": "black",
+      "text": "|",
+      "color": [
+        238,
+        235,
+        228
+      ]
+    },
+    {
+      "hit": 0,
+      "source": "FACE_A",
+      "text": "who",
+      "color": [
+        238,
+        235,
+        228
+      ]
+    },
+    {
+      "hit": 1,
+      "source": "FACE_A",
+      "style": "red_halftone",
+      "text": "who"
+    },
+    {
+      "hit": 2,
+      "background": "paper",
+      "text": "am i?"
+    },
+    {
+      "hit": 3,
+      "source": "ENTER"
+    },
+    {
+      "hit": 4,
+      "source": "FACE_B",
+      "style": "thermal_silhouette",
+      "scan": true
+    },
+    {
+      "hit": 5,
+      "source": "FACE_B",
+      "style": "dots3"
+    },
+    {
+      "hit": 6,
+      "source": "FACE_A",
+      "style": "mono_m3",
+      "text": "who am i?"
+    },
+    {
+      "hit": 7,
+      "background": "red",
+      "text": "?"
+    },
+    {
+      "hit": 8,
+      "source": "ENTER",
+      "slices": true
+    }
+  ]
+}

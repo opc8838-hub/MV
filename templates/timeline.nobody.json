@@ -1,0 +1,411 @@
+{
+  "version": 1,
+  "bpm": 120,
+  "sources": {
+    "FACE_A": {
+      "path": "media/FACE_A.mp4",
+      "start": 0,
+      "x_offset": 0
+    },
+    "FACE_B": {
+      "path": "media/FACE_B.mp4",
+      "start": 0,
+      "x_offset": 0
+    },
+    "ENTER": {
+      "path": "media/ENTER.mp4",
+      "start": 0,
+      "x_offset": 0
+    },
+    "PROCESS_A": {
+      "path": "media/PROCESS_A.mp4",
+      "start": 0,
+      "x_offset": 0
+    },
+    "PROCESS_B": {
+      "path": "media/PROCESS_B.mp4",
+      "start": 0,
+      "x_offset": 0
+    },
+    "HERO": {
+      "path": "media/HERO.mp4",
+      "start": 0,
+      "x_offset": 0
+    },
+    "CLEAN_A": {
+      "path": "media/CLEAN_A.mp4",
+      "start": 0,
+      "x_offset": 0
+    },
+    "CLEAN_B": {
+      "path": "media/CLEAN_B.mp4",
+      "start": 0,
+      "x_offset": 0
+    }
+  },
+  "segments": [
+    {
+      "type": "clip",
+      "start_beat": 0,
+      "end_beat": 2,
+      "source": "ENTER"
+    },
+    {
+      "type": "clip",
+      "start_beat": 2,
+      "end_beat": 4,
+      "source": "PROCESS_A"
+    },
+    {
+      "type": "chop",
+      "start_beat": 4,
+      "end_beat": 6,
+      "source": "PROCESS_A",
+      "offset": 1,
+      "cuts": [
+        {
+          "beat": 0.0,
+          "style": "raw"
+        },
+        {
+          "beat": 0.25,
+          "style": "thermal_silhouette"
+        },
+        {
+          "beat": 0.5,
+          "style": "raw"
+        },
+        {
+          "beat": 0.75,
+          "style": "one_bit"
+        },
+        {
+          "beat": 1.0,
+          "style": "raw"
+        },
+        {
+          "beat": 1.25,
+          "style": "pixel_stretch"
+        },
+        {
+          "beat": 1.5,
+          "style": "raw"
+        },
+        {
+          "beat": 1.75,
+          "style": "rainbow_thermal"
+        }
+      ]
+    },
+    {
+      "type": "clip",
+      "start_beat": 6,
+      "end_beat": 8,
+      "source": "FACE_A",
+      "style": "thermal_silhouette",
+      "word": "skin."
+    },
+    {
+      "type": "clip",
+      "start_beat": 8,
+      "end_beat": 11,
+      "source": "PROCESS_B"
+    },
+    {
+      "type": "clip",
+      "start_beat": 11,
+      "end_beat": 12,
+      "source": "PROCESS_B",
+      "offset": 1.5,
+      "style": "dots3",
+      "transition_frames": 4
+    },
+    {
+      "type": "chop",
+      "start_beat": 12,
+      "end_beat": 14,
+      "source": "PROCESS_B",
+      "offset": 2,
+      "cuts": [
+        {
+          "beat": 0.0,
+          "style": "raw"
+        },
+        {
+          "beat": 0.25,
+          "style": "one_bit"
+        },
+        {
+          "beat": 0.5,
+          "style": "raw"
+        },
+        {
+          "beat": 0.75,
+          "style": "mono_m3"
+        },
+        {
+          "beat": 1.0,
+          "style": "raw"
+        },
+        {
+          "beat": 1.25,
+          "style": "one_bit"
+        },
+        {
+          "beat": 1.5,
+          "style": "raw"
+        },
+        {
+          "beat": 1.75,
+          "style": "mono_m3"
+        }
+      ]
+    },
+    {
+      "type": "clip",
+      "start_beat": 14,
+      "end_beat": 16,
+      "source": "PROCESS_B",
+      "offset": 3,
+      "word": "shape."
+    },
+    {
+      "type": "hero",
+      "start_beat": 16,
+      "end_beat": 20,
+      "source": "HERO",
+      "box": [
+        0.35,
+        0.4,
+        0.12,
+        0.12
+      ],
+      "label": "TOOL TRACK",
+      "magnifier": true
+    },
+    {
+      "type": "chop",
+      "start_beat": 20,
+      "end_beat": 22,
+      "source": "HERO",
+      "offset": 2,
+      "cuts": [
+        {
+          "beat": 0.0,
+          "style": "raw"
+        },
+        {
+          "beat": 0.25,
+          "style": "mono_m3"
+        },
+        {
+          "beat": 0.5,
+          "style": "raw"
+        },
+        {
+          "beat": 0.75,
+          "style": "negative"
+        },
+        {
+          "beat": 1.0,
+          "style": "raw"
+        },
+        {
+          "beat": 1.25,
+          "style": "mono_m3"
+        },
+        {
+          "beat": 1.5,
+          "style": "raw"
+        },
+        {
+          "beat": 1.75,
+          "style": "negative"
+        }
+      ]
+    },
+    {
+      "type": "grid",
+      "start_beat": 22,
+      "end_beat": 26,
+      "n": 3,
+      "tiles": [
+        "FACE_A",
+        "FACE_B",
+        "PROCESS_A",
+        "PROCESS_B",
+        "HERO",
+        "PROCESS_A",
+        "PROCESS_B",
+        "FACE_A",
+        "FACE_B"
+      ],
+      "mode": "reveal",
+      "reveal_beats": 1,
+      "word": "motion."
+    },
+    {
+      "type": "hero",
+      "start_beat": 26,
+      "end_beat": 28,
+      "source": "PROCESS_B",
+      "label": "PROCESS",
+      "box": [
+        0.35,
+        0.4,
+        0.12,
+        0.12
+      ]
+    },
+    {
+      "type": "chop",
+      "start_beat": 28,
+      "end_beat": 30,
+      "source": "PROCESS_B",
+      "offset": 1,
+      "cuts": [
+        {
+          "beat": 0.0,
+          "style": "raw"
+        },
+        {
+          "beat": 0.25,
+          "style": "ascii_face"
+        },
+        {
+          "beat": 0.5,
+          "style": "raw"
+        },
+        {
+          "beat": 0.75,
+          "style": "negative"
+        },
+        {
+          "beat": 1.0,
+          "style": "raw"
+        },
+        {
+          "beat": 1.25,
+          "style": "ascii_face"
+        },
+        {
+          "beat": 1.5,
+          "style": "raw"
+        },
+        {
+          "beat": 1.75,
+          "style": "negative"
+        }
+      ]
+    },
+    {
+      "type": "clip",
+      "start_beat": 30,
+      "end_beat": 31,
+      "source": "PROCESS_B",
+      "offset": 2,
+      "style": "glitch"
+    },
+    {
+      "type": "clip",
+      "start_beat": 31,
+      "end_beat": 32,
+      "source": "FACE_B",
+      "fade_out_frames": 3
+    },
+    {
+      "type": "clip",
+      "start_beat": 32,
+      "end_beat": 34,
+      "source": "CLEAN_A",
+      "wipe": true
+    },
+    {
+      "type": "clip",
+      "start_beat": 34,
+      "end_beat": 36,
+      "source": "CLEAN_A",
+      "offset": 1,
+      "word": "unknown."
+    },
+    {
+      "type": "chop",
+      "start_beat": 36,
+      "end_beat": 37,
+      "source": "CLEAN_B",
+      "cuts": [
+        {
+          "beat": 0.0,
+          "style": "raw"
+        },
+        {
+          "beat": 0.25,
+          "style": "dots3"
+        },
+        {
+          "beat": 0.5,
+          "style": "raw"
+        },
+        {
+          "beat": 0.75,
+          "style": "negative"
+        }
+      ]
+    },
+    {
+      "type": "clip",
+      "start_beat": 37,
+      "end_beat": 40,
+      "source": "CLEAN_B",
+      "offset": 0.5
+    },
+    {
+      "type": "grid",
+      "start_beat": 40,
+      "end_beat": 44,
+      "n": 3,
+      "tiles": [
+        "FACE_A",
+        "FACE_B",
+        "PROCESS_A",
+        "PROCESS_B",
+        "HERO",
+        "PROCESS_A",
+        "PROCESS_B",
+        "FACE_A",
+        "FACE_B"
+      ],
+      "mode": "flip",
+      "flip_to": [
+        "CLEAN_A",
+        "CLEAN_B",
+        "CLEAN_A",
+        "CLEAN_B",
+        "CLEAN_A",
+        "CLEAN_B",
+        "CLEAN_A",
+        "CLEAN_B",
+        "CLEAN_A"
+      ],
+      "flip_beats": 2
+    },
+    {
+      "type": "grid",
+      "start_beat": 44,
+      "end_beat": 48,
+      "n": 3,
+      "tiles": [
+        "CLEAN_A",
+        "CLEAN_B",
+        "CLEAN_A",
+        "CLEAN_B",
+        "CLEAN_A",
+        "CLEAN_B",
+        "CLEAN_A",
+        "CLEAN_B",
+        "CLEAN_A"
+      ],
+      "offset": 2
+    }
+  ]
+}
